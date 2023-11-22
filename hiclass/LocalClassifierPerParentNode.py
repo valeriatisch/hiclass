@@ -7,6 +7,7 @@ from copy import deepcopy
 
 import networkx as nx
 import numpy as np
+import shap
 from sklearn.base import BaseEstimator
 from sklearn.utils.validation import check_array, check_is_fitted
 
@@ -41,6 +42,7 @@ class LocalClassifierPerParentNode(BaseEstimator, HierarchicalClassifier):
         replace_classifiers: bool = True,
         n_jobs: int = 1,
         bert: bool = False,
+        explainer: shap.Explainer = None
     ):
         """
         Initialize a local classifier per parent node.
@@ -73,6 +75,7 @@ class LocalClassifierPerParentNode(BaseEstimator, HierarchicalClassifier):
             n_jobs=n_jobs,
             classifier_abbreviation="LCPPN",
             bert=bert,
+            explainer= explainer
         )
 
     def fit(self, X, y, sample_weight=None):
@@ -111,7 +114,7 @@ class LocalClassifierPerParentNode(BaseEstimator, HierarchicalClassifier):
         # Return the classifier
         return self
 
-    def predict(self, X):
+    def predict_old(self, X):
         """
         Predict classes for the given data.
 
@@ -155,6 +158,37 @@ class LocalClassifierPerParentNode(BaseEstimator, HierarchicalClassifier):
         self._remove_separator(y)
 
         return y
+
+    def predict(self, X):
+        y_all = []
+        explainations = []
+        
+        root_classifier = self.hierarchy_.nodes[self.root_]["classifier"]
+        
+        for x in X.toarray():
+            classifier = root_classifier
+            y = []
+            explaination = []
+            for level in range(self.max_levels_):
+                prediction = classifier.predict(x.reshape(1, -1)).item()
+                y.append(prediction)
+                explainer = self.explainer(classifier.predict, X)
+                explaination.append(explainer.explain(x))
+                if not "classifier" in self.hierarchy_.nodes[prediction].keys():
+                    break
+                classifier = self.hierarchy_.nodes[prediction]["classifier"]
+            print("---------------")
+            print(y)
+            print("---------------")
+            y_all.append(y)
+
+        y_all = np.array(y_all)
+        y_all = self._convert_to_1d(y_all)
+
+        self._remove_separator(y_all)
+
+        return y_all
+
 
     def _predict_remaining_levels(self, X, y):
         for level in range(1, y.shape[1]):

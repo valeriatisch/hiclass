@@ -5,6 +5,7 @@ import logging
 import networkx as nx
 import numpy as np
 from joblib import Parallel, delayed
+import shap
 from sklearn.base import BaseEstimator
 from sklearn.linear_model import LogisticRegression
 from sklearn.utils.validation import _check_sample_weight
@@ -66,6 +67,7 @@ class HierarchicalClassifier(abc.ABC):
         replace_classifiers: bool = True,
         n_jobs: int = 1,
         bert: bool = False,
+        explainer= None,
         classifier_abbreviation: str = "",
     ):
         """
@@ -99,6 +101,7 @@ class HierarchicalClassifier(abc.ABC):
         self.replace_classifiers = replace_classifiers
         self.n_jobs = n_jobs
         self.bert = bert
+        self.explainer = explainer
         self.classifier_abbreviation = classifier_abbreviation
 
     def fit(self, X, y, sample_weight=None):
