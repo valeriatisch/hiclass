@@ -161,33 +161,46 @@ class LocalClassifierPerParentNode(BaseEstimator, HierarchicalClassifier):
 
     def predict(self, X):
         y_all = []
-        explainations = []
+        explanations = []
         
         root_classifier = self.hierarchy_.nodes[self.root_]["classifier"]
         
         for x in X.toarray():
             classifier = root_classifier
             y = []
-            explaination = []
+            explanations = []
+            explanation = None
             for level in range(self.max_levels_):
                 prediction = classifier.predict(x.reshape(1, -1)).item()
                 y.append(prediction)
-                explainer = self.explainer(classifier.predict, X)
-                explaination.append(explainer.explain(x))
+                explainer = self.explainer(classifier)
+                explanation = explainer.shap_values(x)
+                explanations.append(explanation)
                 if not "classifier" in self.hierarchy_.nodes[prediction].keys():
                     break
                 classifier = self.hierarchy_.nodes[prediction]["classifier"]
-            print("---------------")
-            print(y)
-            print("---------------")
-            y_all.append(y)
+            # print("---------------")
+            # print(explanation)
+            # np_explanation = np.array(explanation)
+            # np_x = np.array(x)
+            # print(self.explainer.encoding)
+            # print(np_explanation.shape)
+            # print(np_x.shape)
+            # print(len(self.explainer.encoding))
+            # indices = np_explanation[0].argpartition(-10)[-10:]
+            # for index in indices:
+            #     print(self.explainer.encoding[index])
+            # print(self.explainer.encoding[np_explanation.argmax(axis=1)[0]])
+            # shap.summary_plot(np_explanation, plot_type="bar", class_names=[i for i in range(np_explanation.shape[0])], feature_names=np.array(self.explainer.encoding))#, feature_names=np.array(self.explainer.encoding).reshape(-1, 1))
+            # print("---------------")
+            # y_all.append(y)
 
         y_all = np.array(y_all)
         y_all = self._convert_to_1d(y_all)
 
         self._remove_separator(y_all)
 
-        return y_all
+        return y_all, explanations
 
 
     def _predict_remaining_levels(self, X, y):
