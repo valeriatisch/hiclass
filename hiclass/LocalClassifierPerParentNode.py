@@ -13,6 +13,7 @@ from sklearn.utils.validation import check_array, check_is_fitted
 
 from hiclass.ConstantClassifier import ConstantClassifier
 from hiclass.HierarchicalClassifier import HierarchicalClassifier
+import torch
 
 
 class LocalClassifierPerParentNode(BaseEstimator, HierarchicalClassifier):
@@ -99,6 +100,7 @@ class LocalClassifierPerParentNode(BaseEstimator, HierarchicalClassifier):
         self : object
             Fitted estimator.
         """
+        self.X_train = X
         # Execute common methods necessary before fitting
         super()._pre_fit(X, y, sample_weight)
 
@@ -165,16 +167,19 @@ class LocalClassifierPerParentNode(BaseEstimator, HierarchicalClassifier):
         
         root_classifier = self.hierarchy_.nodes[self.root_]["classifier"]
         
-        for x in X.toarray():
+        for x in X: #X.toarray():
             classifier = root_classifier
             y = []
             explanations = []
             explanation = None
             for level in range(self.max_levels_):
-                prediction = classifier.predict(x.reshape(1, -1)).item()
+                if isinstance(classifier, ConstantClassifier):
+                    continue
+                prediction = classifier.predict(x.reshape(1, 3, 224, 224)).item()  # .reshape(1, -1) for random forest NLP task
                 y.append(prediction)
-                explainer = self.explainer(classifier)
-                explanation = explainer.shap_values(x)
+                # explainer = self.explainer(classifier.alexnet, torch.from_numpy(self.X_train))
+                # explanation = explainer.shap_values(torch.from_numpy(x))
+                explanation = classifier.explain_model(torch.from_numpy(self.X_train), torch.from_numpy(x.reshape(1, 3, 224, 224)))
                 explanations.append(explanation)
                 if not "classifier" in self.hierarchy_.nodes[prediction].keys():
                     break
@@ -196,6 +201,9 @@ class LocalClassifierPerParentNode(BaseEstimator, HierarchicalClassifier):
             y_all.append(y)
             explanations_all.append(explanations)
 
+        max_y_all_length = max([len(y) for y in y_all])
+        for i in range(len(y_all)):
+            y_all[i] += [' '] * (max_y_all_length - len(y_all[i]))
         y_all = np.array(y_all)
         y_all = self._convert_to_1d(y_all)
 

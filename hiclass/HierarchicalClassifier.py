@@ -137,7 +137,7 @@ class HierarchicalClassifier(abc.ABC):
         # Check that X and y have correct shape
         # and convert them to np.ndarray if need be
 
-        if not self.bert:
+        if False:
             self.X_, self.y_ = self._validate_data(
                 X, y, multi_output=True, accept_sparse="csr"
             )
