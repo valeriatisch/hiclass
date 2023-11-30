@@ -161,7 +161,7 @@ class LocalClassifierPerParentNode(BaseEstimator, HierarchicalClassifier):
 
     def predict(self, X):
         y_all = []
-        explanations = []
+        explanations_all = []
         
         root_classifier = self.hierarchy_.nodes[self.root_]["classifier"]
         
@@ -193,14 +193,16 @@ class LocalClassifierPerParentNode(BaseEstimator, HierarchicalClassifier):
             # print(self.explainer.encoding[np_explanation.argmax(axis=1)[0]])
             # shap.summary_plot(np_explanation, plot_type="bar", class_names=[i for i in range(np_explanation.shape[0])], feature_names=np.array(self.explainer.encoding))#, feature_names=np.array(self.explainer.encoding).reshape(-1, 1))
             # print("---------------")
-            # y_all.append(y)
+            y_all.append(y)
+            explanations_all.append(explanations)
 
         y_all = np.array(y_all)
         y_all = self._convert_to_1d(y_all)
 
         self._remove_separator(y_all)
+        print(y_all)
 
-        return y_all, explanations
+        return y_all, explanations_all
 
 
     def _predict_remaining_levels(self, X, y):
