@@ -68,6 +68,7 @@ class HierarchicalClassifier(abc.ABC):
         n_jobs: int = 1,
         bert: bool = False,
         explainer= None,
+        input_data_preprocessor=None,
         classifier_abbreviation: str = "",
     ):
         """
@@ -102,6 +103,7 @@ class HierarchicalClassifier(abc.ABC):
         self.n_jobs = n_jobs
         self.bert = bert
         self.explainer = explainer
+        self.input_data_preprocessor = input_data_preprocessor if input_data_preprocessor is not None else lambda x: np.array(x).reshape(1, -1)
         self.classifier_abbreviation = classifier_abbreviation
 
     def fit(self, X, y, sample_weight=None):

@@ -43,7 +43,8 @@ class LocalClassifierPerParentNode(BaseEstimator, HierarchicalClassifier):
         replace_classifiers: bool = True,
         n_jobs: int = 1,
         bert: bool = False,
-        explainer: shap.Explainer = None
+        explainer: shap.Explainer = None,
+        input_data_preprocessor: callable = None,
     ):
         """
         Initialize a local classifier per parent node.
@@ -76,7 +77,8 @@ class LocalClassifierPerParentNode(BaseEstimator, HierarchicalClassifier):
             n_jobs=n_jobs,
             classifier_abbreviation="LCPPN",
             bert=bert,
-            explainer= explainer
+            explainer= explainer,
+            input_data_preprocessor=input_data_preprocessor,
         )
 
     def fit(self, X, y, sample_weight=None):
@@ -166,8 +168,10 @@ class LocalClassifierPerParentNode(BaseEstimator, HierarchicalClassifier):
         explanations_all = []
         
         root_classifier = self.hierarchy_.nodes[self.root_]["classifier"]
+
+        X_iterator = X if isinstance(X, np.ndarray) else [x for _, x in X.iterrows()]
         
-        for x in X: #X.toarray():
+        for x in X_iterator:
             classifier = root_classifier
             y = []
             explanations = []
@@ -175,11 +179,14 @@ class LocalClassifierPerParentNode(BaseEstimator, HierarchicalClassifier):
             for level in range(self.max_levels_):
                 if isinstance(classifier, ConstantClassifier):
                     continue
-                prediction = classifier.predict(x.reshape(1, 3, 224, 224)).item()  # .reshape(1, -1) for random forest NLP task
+                prediction = classifier.predict(self.input_data_preprocessor(x)).item()  # .reshape(1, -1) for random forest NLP task
                 y.append(prediction)
-                # explainer = self.explainer(classifier.alexnet, torch.from_numpy(self.X_train))
-                # explanation = explainer.shap_values(torch.from_numpy(x))
-                explanation = classifier.explain_model(torch.from_numpy(self.X_train), torch.from_numpy(x.reshape(1, 3, 224, 224)))
+                # Check if classifier has a method explain_model
+                if not hasattr(classifier, "explain_model"):
+                    explainer = self.explainer(classifier, np.array(self.X_train))
+                    explanation = explainer.shap_values(self.input_data_preprocessor(x), check_additivity=False)
+                else:
+                    explanation = classifier.explain_model(torch.from_numpy(self.X_train), torch.from_numpy(self.input_data_preprocessor(x)))
                 explanations.append(explanation)
                 if not "classifier" in self.hierarchy_.nodes[prediction].keys():
                     break
