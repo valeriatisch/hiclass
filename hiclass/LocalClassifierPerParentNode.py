@@ -210,7 +210,7 @@ class LocalClassifierPerParentNode(BaseEstimator, HierarchicalClassifier):
 
         max_y_all_length = max([len(y) for y in y_all])
         for i in range(len(y_all)):
-            y_all[i] += [' '] * (max_y_all_length - len(y_all[i]))
+            y_all[i] += [''] * (max_y_all_length - len(y_all[i]))
         y_all = np.array(y_all)
         y_all = self._convert_to_1d(y_all)
 
