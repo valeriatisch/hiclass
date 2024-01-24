@@ -162,6 +162,14 @@ class LocalClassifierPerParentNode(BaseEstimator, HierarchicalClassifier):
         self._remove_separator(y)
 
         return y
+    
+    def predict_proba(model, X):
+        classifiers = {node: model.hierarchy_.nodes[node]["classifier"] for node in model.hierarchy_.nodes if
+                    "classifier" in model.hierarchy_.nodes[node]}
+
+        # This will give list of target labels in the same order as predict_proba probabilities
+        # [clf.classes_ for clf in classifiers] 
+        return {node.split(':')[-1]: clf.predict_proba(X) for node, clf in classifiers.items()}
 
     def predict(self, X):
         y_all = []
